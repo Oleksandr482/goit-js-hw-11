@@ -30,9 +30,13 @@ function onSearch(e) {
     refs.loadingEl.classList.add('is-hidden')
     return Notify.info('Enter your query, please ;-)')
   }
+  if (isLoading || photosApiService.query === '') return;
+  isLoading = true;
   photosApiService.fetchArticles().then(r => {
-    createGallery(r);
-    gallery.refresh()
+    getResponse(r);
+    if (photosApiService.onePage||photosApiService.pages===0) {
+    refs.loadingEl.classList.add('is-hidden')
+  }
   })
     .catch(e => {
     Notify.failure('Oops, error!!!')
@@ -43,9 +47,7 @@ function onLoadMore() {
   if (isLoading || photosApiService.query === '') return;
   isLoading = true;
   photosApiService.fetchArticles().then(r => {
-    createGallery(r);
-    gallery.refresh()
-    isLoading = false;
+    getResponse(r)
     if (photosApiService.hidden) {
     refs.loadingEl.classList.add('is-hidden')
   }
@@ -58,6 +60,12 @@ function onLoadMore() {
 function createGallery(hits) {
   const markup = articlecTpl(hits)
   refs.gallery.insertAdjacentHTML('beforeend', markup)
+}
+
+function getResponse(r) {
+    createGallery(r);
+    gallery.refresh()
+    isLoading = false;
 }
 
 function checkPosition() {
