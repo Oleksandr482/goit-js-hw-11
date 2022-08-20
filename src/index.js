@@ -4,18 +4,21 @@ import NewsApiService from './js/api-service.js';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
-import throttle from 'lodash.throttle';
 
 const refs = {
   searchForm: document.querySelector('#search-form'),
   gallery: document.querySelector('.gallery'),
   loadingEl: document.querySelector('#load-more')
 }
-let isLoading = false;
 
-refs.searchForm.addEventListener('submit', onSearch)
-window.addEventListener('scroll', throttle(checkPosition, 250))
-window.addEventListener('resize', throttle(checkPosition, 250))
+const infiniteScroll = new IntersectionObserver(([entry], observer) => {
+  if (entry.isIntersecting) {
+    observer.unobserve(entry.target)
+  onLoadMore();
+  }
+})
+
+refs.searchForm.addEventListener('submit', onSearch);
 
 const photosApiService = new NewsApiService()
 const gallery = new SimpleLightbox('.gallery a', {})
@@ -26,17 +29,17 @@ function onSearch(e) {
   refs.gallery.innerHTML = '';
   photosApiService.query = e.currentTarget.elements.searchQuery.value
   photosApiService.resetPage()
-  if (photosApiService.query === '') {
-    refs.loadingEl.classList.add('is-hidden')
-    return Notify.info('Enter your query, please ;-)')
-  }
-  if (isLoading || photosApiService.query === '') return;
-  isLoading = true;
+    if (photosApiService.query === '') {
+      refs.loadingEl.classList.add('is-hidden')
+      return Notify.info('Enter your query, please ;-)')
+    }
+  refs.searchForm.reset();
   photosApiService.fetchArticles().then(r => {
     getResponse(r);
-    if (photosApiService.onePage||photosApiService.pages===0) {
+    if (photosApiService.totalPages<=1) {
     refs.loadingEl.classList.add('is-hidden')
-  }
+    }
+    addObserver();
   })
     .catch(e => {
     Notify.failure('Oops, error!!!')
@@ -44,17 +47,17 @@ function onSearch(e) {
 }
 
 function onLoadMore() {
-  if (isLoading || photosApiService.query === '') return;
-  isLoading = true;
-  photosApiService.fetchArticles().then(r => {
-    getResponse(r)
-    if (photosApiService.hidden) {
+  if (photosApiService.page > photosApiService.totalPages) {
     refs.loadingEl.classList.add('is-hidden')
+    Notify.info("We're sorry, but you've reached the end of search results.");
+    return
   }
+  photosApiService.fetchArticles().then(r => {
+    getResponse(r);
+    addObserver();
   }).catch(e => {
     Notify.failure('Oops, error!!!')
   })
-
 }
 
 function createGallery(hits) {
@@ -64,18 +67,12 @@ function createGallery(hits) {
 
 function getResponse(r) {
     createGallery(r);
-    gallery.refresh()
-    isLoading = false;
+  gallery.refresh();
 }
 
-function checkPosition() {
-  const height = document.body.offsetHeight
-  const screenHeight = window.innerHeight
-  const scrolled = window.scrollY
-  const threshold = height - screenHeight / 2
-  const position = scrolled + screenHeight
-
-  if (position >= threshold) {
-    onLoadMore();
-  }
+function addObserver() {
+  const lastPhoto = document.querySelector('.gallery a:last-child')
+    if (lastPhoto) {
+      infiniteScroll.observe(lastPhoto)
+    }
 }

@@ -6,16 +6,12 @@ export default class NewApiService {
         this.searchQuery = '';
         this.page = 1;
         this.totalPages = null;
-        this.owerMessage = null;
-        this.onlyOnePage = null;
     }
 
     async fetchArticles() {
         const API_KEY = '29336410-bf8336e60ac171a1237415fd3';
         const OPTIONS = 'image_type=photo&orientation=horizontal&safesearch=true&lang=en&lang=uk&per_page=40'
         const url = `https://pixabay.com/api/?key=${API_KEY}&q=${this.searchQuery}&${OPTIONS}&page=${this.page}`;
-        if (this.owerMessage) return
-        
         
         const r = await axios.get(url);
         const data = await r.data;
@@ -24,18 +20,9 @@ export default class NewApiService {
     }
 
     getArrayOfPhotos(r) {
-        
         this.totalPages = Math.ceil(r.totalHits / 40);
-        if (this.totalPages === 1) {
-            this.onlyOnePage = true;
-        }
         if (r.totalHits === 0) {
             return Notify.failure('Sorry, there are no images matching your search query. Please try again.');
-        }
-        if (this.page > this.totalPages) {
-            this.owerMessage = true;
-            Notify.info("We're sorry, but you've reached the end of search results.");
-            return
         }
         if (this.page === 1) {
             Notify.success(`Hooray! We found ${r.totalHits} images.`);
@@ -47,8 +34,6 @@ export default class NewApiService {
     resetPage() {
         this.page = 1;
         this.totalPages = null;
-        this.owerMessage = null;
-        this.onlyOnePage = null;
     }
     
     get query() {
@@ -57,17 +42,6 @@ export default class NewApiService {
 
     set query(newQuery) {
         this.searchQuery = newQuery;
-    }
-
-    get hidden() {
-        return this.owerMessage
-    }
-
-    get onePage() {
-        return this.onlyOnePage
-    }
-    get pages() {
-        return this.totalPages;
     }
 }
     
